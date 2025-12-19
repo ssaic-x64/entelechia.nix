@@ -4,7 +4,9 @@
 
 Entelechia is a Nix-based philosophy agent system that provides declarative tools for philosophical reasoning and inquiry. It treats purpose as realization, not search.
 
-## Installation
+## Usage
+
+### Installation
 
 ### With Flakes (Recommended)
 
