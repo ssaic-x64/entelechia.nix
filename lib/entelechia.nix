@@ -99,8 +99,8 @@ rec {
 
     # Configuration validation
     isValid = 
-      builtins.hasAttr mode.name (builtins.attrNames modes) &&
-      builtins.hasAttr reasoning.name (builtins.attrNames reasoningTypes);
+      builtins.hasAttr mode.name modes &&
+      builtins.hasAttr reasoning.name reasoningTypes;
   };
 
   # Create inquiry - A structured philosophical question

@@ -128,7 +128,7 @@ echo ""
 
 # Count available modes
 echo "Counting philosophy modes..."
-mode_count=$(grep -c 'name = ".*";' lib/entelechia.nix | head -1)
+mode_count=$(grep -c 'name = ".*";' lib/entelechia.nix)
 echo "  Found approximately: $mode_count modes"
 echo ""
 

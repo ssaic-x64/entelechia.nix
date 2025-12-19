@@ -13,9 +13,6 @@ and systems thinking through configuration.
 # Run with Nix flakes
 nix run github:ssaic-x64/entelechia.nix -- modes
 
-# List all reasoning modes
-nix run github:ssaic-x64/entelechia.nix -- modes
-
 # Create a Socratic agent
 nix run github:ssaic-x64/entelechia.nix -- agent socratic
 
