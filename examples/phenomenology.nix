@@ -3,9 +3,7 @@
 
 let
   lib = import ../lib/entelechia.nix {};
-in
 
-let
   # Create a phenomenological agent with descriptive reasoning
   agent = lib.mkAgent {
     mode = lib.modes.phenomenological;

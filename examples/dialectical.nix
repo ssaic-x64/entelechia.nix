@@ -3,9 +3,7 @@
 
 let
   lib = import ../lib/entelechia.nix {};
-in
 
-let
   # Create a dialectical agent
   agent = lib.mkAgent {
     mode = lib.modes.dialectical;

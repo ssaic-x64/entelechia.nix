@@ -3,9 +3,7 @@
 
 let
   lib = import ../lib/entelechia.nix {};
-in
 
-let
   # Create a Socratic agent with deductive reasoning
   agent = lib.mkAgent {
     mode = lib.modes.socratic;

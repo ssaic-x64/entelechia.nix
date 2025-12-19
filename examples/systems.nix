@@ -3,9 +3,7 @@
 
 let
   lib = import ../lib/entelechia.nix {};
-in
 
-let
   # Create a systematic agent with multiple reasoning modes
   agent = lib.mkAgent {
     mode = lib.modes.systematic;

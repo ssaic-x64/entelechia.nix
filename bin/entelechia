@@ -106,7 +106,14 @@ process_inquiry() {
     
     echo -e "${BLUE}Processing Inquiry...${NC}\n"
     
-    nix eval --impure --json --file "$file" 2>/dev/null | jq -r '
+    output=$(nix eval --impure --json --file "$file" 2>&1)
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Error evaluating Nix file:${NC}"
+        echo "$output"
+        exit 1
+    fi
+    
+    echo "$output" | jq -r '
       "Question: \(.inquiry.question)",
       "Mode: \(.inquiry.mode.name)",
       "Goal: \(.inquiry.goal)",
