@@ -1,0 +1,222 @@
+#!/usr/bin/env bash
+# Entelechia - Philosophy Agent CLI
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Get library path
+LIB_PATH="${ENTELECHIA_LIB:-lib/entelechia.nix}"
+
+print_banner() {
+    echo -e "${CYAN}"
+    echo "╔══════════════════════════════════════════════════════════╗"
+    echo "║                    ENTELECHIA                            ║"
+    echo "║          A Declarative Philosopher-Agent System          ║"
+    echo "╚══════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+print_help() {
+    cat << EOF
+Usage: entelechia [COMMAND] [OPTIONS]
+
+A Nix-based philosophy agent for reflective reasoning and inquiry.
+
+Commands:
+    modes               List all available reasoning modes
+    reasoning           List all reasoning types
+    agent <mode>        Create and display an agent configuration
+    inquiry <file>      Process a philosophical inquiry from Nix file
+    example <name>      Run an example inquiry
+    eval <expr>         Evaluate a Nix expression with entelechia library
+    repl                Enter Nix REPL with entelechia library loaded
+    help                Show this help message
+
+Examples:
+    entelechia modes
+    entelechia agent socratic
+    entelechia example epistemology
+    entelechia eval "mkAgent { mode = modes.socratic; reasoning = reasoningTypes.deductive; }"
+    entelechia repl
+
+Philosophy is treated as realization, not search.
+EOF
+}
+
+list_modes() {
+    echo -e "${YELLOW}Available Reasoning Modes:${NC}\n"
+    
+    nix eval --impure --raw --expr "
+      let lib = import ${LIB_PATH} {};
+      in builtins.concatStringsSep \"\n\" (
+        builtins.map (name: 
+          let mode = lib.modes.\${name};
+          in \"  ${CYAN}\${mode.name}${NC} - \${mode.description}\n    Method: \${mode.method}, Goal: \${mode.goal}\"
+        ) (builtins.attrNames lib.modes)
+      )
+    " 2>/dev/null || echo "Error loading modes"
+    echo ""
+}
+
+list_reasoning() {
+    echo -e "${YELLOW}Available Reasoning Types:${NC}\n"
+    
+    nix eval --impure --raw --expr "
+      let lib = import ${LIB_PATH} {};
+      in builtins.concatStringsSep \"\n\" (
+        builtins.map (name:
+          let rt = lib.reasoningTypes.\${name};
+          in \"  ${GREEN}\${rt.name}${NC} - \${rt.description}\n    Certainty: \${rt.certainty}\"
+        ) (builtins.attrNames lib.reasoningTypes)
+      )
+    " 2>/dev/null || echo "Error loading reasoning types"
+    echo ""
+}
+
+create_agent() {
+    local mode="$1"
+    
+    echo -e "${BLUE}Creating Philosopher Agent with ${CYAN}${mode}${BLUE} mode...${NC}\n"
+    
+    nix eval --impure --raw --expr "
+      let lib = import ${LIB_PATH} {};
+          agent = lib.mkAgent {
+            mode = lib.modes.${mode};
+            reasoning = lib.reasoningTypes.deductive;
+          };
+      in lib.formatAgent agent
+    " 2>/dev/null || echo "Error: Invalid mode '${mode}'"
+    echo ""
+}
+
+process_inquiry() {
+    local file="$1"
+    
+    if [ ! -f "$file" ]; then
+        echo -e "${RED}Error: File not found: ${file}${NC}"
+        exit 1
+    fi
+    
+    echo -e "${BLUE}Processing Inquiry...${NC}\n"
+    
+    nix eval --impure --json --file "$file" 2>/dev/null | jq -r '
+      "Question: \(.inquiry.question)",
+      "Mode: \(.inquiry.mode.name)",
+      "Goal: \(.inquiry.goal)",
+      "",
+      "Reflection Structure:",
+      "  Method: \(.structure.method)",
+      "  Approach: \(.structure.approach)",
+      "  Reasoning: \(.structure.reasoning)",
+      "",
+      "Result:",
+      "  Certainty: \(.result.certainty)",
+      "  Scope: \(.result.scope)"
+    ' || echo "Error processing inquiry"
+}
+
+run_example() {
+    local example="$1"
+    local example_file="examples/${example}.nix"
+    
+    if [ -f "$example_file" ]; then
+        process_inquiry "$example_file"
+    else
+        echo -e "${RED}Error: Example not found: ${example}${NC}"
+        echo "Available examples:"
+        ls -1 examples/*.nix 2>/dev/null | xargs -n1 basename -s .nix | sed 's/^/  /' || echo "  (none)"
+        exit 1
+    fi
+}
+
+eval_expr() {
+    local expr="$1"
+    
+    echo -e "${BLUE}Evaluating expression...${NC}\n"
+    
+    nix eval --impure --json --expr "
+      let lib = import ${LIB_PATH} {};
+      in with lib; ${expr}
+    " 2>/dev/null | jq -C '.' || echo "Error evaluating expression"
+}
+
+start_repl() {
+    echo -e "${YELLOW}Starting Nix REPL with Entelechia library loaded...${NC}\n"
+    echo "Available: modes, reasoningTypes, mkAgent, mkInquiry, reflect, etc."
+    echo "Try: mkAgent { mode = modes.socratic; reasoning = reasoningTypes.deductive; }"
+    echo ""
+    
+    nix repl --expr "import ${LIB_PATH} {}"
+}
+
+# Main command dispatcher
+main() {
+    case "${1:-help}" in
+        modes)
+            print_banner
+            list_modes
+            ;;
+        reasoning)
+            print_banner
+            list_reasoning
+            ;;
+        agent)
+            if [ $# -lt 2 ]; then
+                echo -e "${RED}Error: Missing mode argument${NC}"
+                echo "Usage: entelechia agent <mode>"
+                exit 1
+            fi
+            print_banner
+            create_agent "$2"
+            ;;
+        inquiry)
+            if [ $# -lt 2 ]; then
+                echo -e "${RED}Error: Missing file argument${NC}"
+                echo "Usage: entelechia inquiry <file>"
+                exit 1
+            fi
+            print_banner
+            process_inquiry "$2"
+            ;;
+        example)
+            if [ $# -lt 2 ]; then
+                echo -e "${RED}Error: Missing example name${NC}"
+                echo "Usage: entelechia example <name>"
+                exit 1
+            fi
+            print_banner
+            run_example "$2"
+            ;;
+        eval)
+            if [ $# -lt 2 ]; then
+                echo -e "${RED}Error: Missing expression${NC}"
+                echo "Usage: entelechia eval <expression>"
+                exit 1
+            fi
+            print_banner
+            eval_expr "$2"
+            ;;
+        repl)
+            print_banner
+            start_repl
+            ;;
+        help|--help|-h)
+            print_banner
+            print_help
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown command: $1${NC}\n"
+            print_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
